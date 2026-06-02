@@ -12,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        (os.path.join('share', package_name, 'param'), glob('param/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -19,6 +20,8 @@ setup(
         'console_scripts': [
             'navigate = iot_security_demo.navigate:main',
             'attacker = iot_security_demo.attacker:main',
+            'attacker2 = iot_security_demo.attacker2:main',
+            'attacker3 = iot_security_demo.attacker3:main',
             'rate_filter = iot_security_demo.rate_filter:main',
             'llm_monitor = iot_security_demo.llm_monitor:main',
         ],

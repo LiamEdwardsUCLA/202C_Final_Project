@@ -1,0 +1,20 @@
+[0.668s] Invoking command in '/home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo': PYTHONPATH=/home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo/build --no-deps symlink_data
+[0.970s] running develop
+[1.188s] running egg_info
+[1.205s] writing iot_security_demo.egg-info/PKG-INFO
+[1.205s] writing dependency_links to iot_security_demo.egg-info/dependency_links.txt
+[1.205s] writing entry points to iot_security_demo.egg-info/entry_points.txt
+[1.205s] writing requirements to iot_security_demo.egg-info/requires.txt
+[1.205s] writing top-level names to iot_security_demo.egg-info/top_level.txt
+[1.285s] writing manifest file 'iot_security_demo.egg-info/SOURCES.txt'
+[1.303s] running build_ext
+[1.303s] Creating /home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/python3.10/site-packages/iot-security-demo.egg-link (link to .)
+[1.304s] Installing attacker script to /home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/iot_security_demo
+[1.304s] Installing attacker2 script to /home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/iot_security_demo
+[1.304s] Installing llm_monitor script to /home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/iot_security_demo
+[1.304s] Installing navigate script to /home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/iot_security_demo
+[1.304s] Installing rate_filter script to /home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/iot_security_demo
+[1.305s] 
+[1.305s] Installed /home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo
+[1.305s] running symlink_data
+[1.324s] Invoked command in '/home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo' returned '0': PYTHONPATH=/home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/liamedwards/202C_Final_Project/ros_ws/install/iot_security_demo/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/liamedwards/202C_Final_Project/ros_ws/build/iot_security_demo/build --no-deps symlink_data

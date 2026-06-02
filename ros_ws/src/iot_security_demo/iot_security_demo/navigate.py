@@ -1,3 +1,4 @@
+import time
 import rclpy
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 from geometry_msgs.msg import PoseStamped
@@ -17,7 +18,8 @@ def main():
     rclpy.init()
     navigator = BasicNavigator()
 
-    # Match the spawn pose in demo.launch.py
+    # Give AMCL time to finish subscribing before publishing initial pose
+    time.sleep(3.0)
     navigator.setInitialPose(make_pose(navigator, -2.0, -0.5))
     navigator.waitUntilNav2Active()
 

