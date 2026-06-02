@@ -1,0 +1,9 @@
+source;share/iot_security_demo/hook/pythonpath.ps1
+source;share/iot_security_demo/hook/pythonpath.dsv
+source;share/iot_security_demo/hook/pythonpath.sh
+source;share/iot_security_demo/hook/ament_prefix_path.ps1
+source;share/iot_security_demo/hook/ament_prefix_path.dsv
+source;share/iot_security_demo/hook/ament_prefix_path.sh
+source;../../build/iot_security_demo/share/iot_security_demo/hook/pythonpath_develop.ps1
+source;../../build/iot_security_demo/share/iot_security_demo/hook/pythonpath_develop.dsv
+source;../../build/iot_security_demo/share/iot_security_demo/hook/pythonpath_develop.sh

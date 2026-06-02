@@ -1,0 +1,4 @@
+Metadata-Version: 2.1
+Name: iot_security_demo
+Version: 0.0.1
+Requires-Dist: setuptools
