@@ -16,8 +16,14 @@ _start_gazebo
 _start_nav2 "nav2_llm.launch.py" "Nav2 (LLM defense)"
 _start_llm_monitor
 _start_navigate
-_start_attacker "$ATTACKER" "Attacker ($ATTACKER)"
+
+if [[ "$1" != "--no-attacker" ]]; then
+  _start_attacker "$ATTACKER" "Attacker ($ATTACKER)"
+  echo "Attacker: $ATTACKER"
+else
+  echo "No attacker — LLM monitor running in observation mode."
+fi
 
 echo ""
 echo "Pipeline: /scan -> llm_monitor -> /scan_verified -> Nav2"
-echo "Attacker: $ATTACKER  |  Logs: ~/202C_Final_Project/logs/"
+echo "Logs: ~/202C_Final_Project/logs/"
