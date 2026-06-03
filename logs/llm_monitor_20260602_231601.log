@@ -1,0 +1,8 @@
+LLM Monitor log — started 20260602_231601
+Model: gemini-3.5-flash  Poll interval: 10.0s
+======================================================================
+
+[23:16:07] ERROR: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
+
+[23:16:17] ERROR: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
+

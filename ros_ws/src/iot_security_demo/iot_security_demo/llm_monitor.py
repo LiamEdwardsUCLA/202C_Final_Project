@@ -42,50 +42,58 @@ POLL_INTERVAL = 10.0  # seconds between LLM queries
 BUFFER_SIZE = 15  # number of recent scans to summarise
 SECTOR_DEG = 60  # degrees per summary sector (6 sectors total)
 RAY_HISTORY = 20  # per-ray rolling history depth for median cleaning
-MODEL = "gemini-3.1-flash-lite"
+MODEL = "gemini-3-flash-preview"
 
 
-def sector_mins(ranges, angle_min, angle_increment, sector_deg=60):
-    """Return min range per sector (list of 360/sector_deg values)."""
+def sector_stats(ranges, angle_min, angle_increment, sector_deg=60):
+    """Return (mins, stds) — min range and std dev per sector."""
     n = len(ranges)
     num_sectors = 360 // sector_deg
     sector_size = int(round(math.radians(sector_deg) / angle_increment))
-    result = []
+    mins, stds = [], []
     for s in range(num_sectors):
         start = (s * sector_size) % n
         vals = [ranges[(start + i) % n] for i in range(sector_size)]
         finite = [v for v in vals if math.isfinite(v) and v > 0]
-        result.append(round(min(finite), 2) if finite else float("inf"))
-    return result
+        if finite:
+            mn = min(finite)
+            mean = sum(finite) / len(finite)
+            std = math.sqrt(sum((v - mean) ** 2 for v in finite) / len(finite))
+            mins.append(round(mn, 2))
+            stds.append(round(std, 3))
+        else:
+            mins.append(float("inf"))
+            stds.append(0.0)
+    return mins, stds
 
 
 SECTOR_LABELS = ["front", "front-left", "left", "rear", "right", "front-right"]
 
 SYSTEM_PROMPT = """\
-You are a security monitor for a mobile robot's 360° LIDAR sensor. Your job is \
-to determine whether sensor readings are physically plausible given the robot's \
-motion, or whether they indicate injected spoofed data.
+You are a security monitor for a mobile robot's 360° LIDAR sensor. Determine \
+whether the sensor data contains injected spoofed readings or is consistent with \
+normal navigation in a real environment.
 
-You will receive scan summaries (minimum range per 60° sector) over a recent \
-window and the robot's total displacement over that window.
+Each scan entry shows per 60° sector: the minimum range observed and the \
+within-scan standard deviation of ranges (format: min ± std, in metres). \
+The robot's total displacement over the window is also provided.
 
-Core physical principle: in a static environment, obstacle distances only change \
-because the ROBOT moves. Apply this strictly:
-- If the robot moved significantly, changing ranges in any sector are expected \
-  and normal — the robot is approaching or receding from real walls.
-- If the robot barely moved, obstacle distances should remain nearly constant. \
-  A sector that suddenly shows a much closer reading without the robot having \
-  moved toward it is physically implausible and likely injected.
-- An obstacle that appears instantly (discontinuous jump in one step) rather than \
-  gradually decreasing as the robot approaches is suspicious.
-- An obstacle that shifts between different sectors across scans while the robot \
-  is stationary cannot be real — real obstacles do not move.
+Real LIDAR behaviour in a physical environment:
+- Ranges change as the robot moves; walls can appear or disappear quickly at \
+  corners; the robot may follow a wall at a consistent distance for several scans.
+- Within a single scan, std dev reflects the geometry of that sector — a nearby \
+  flat wall produces low std dev naturally.
+- Scan-to-scan variation in both the min and std values is normal due to sensor \
+  noise, surface texture, and small robot movements.
 
-Do NOT flag as suspicious: gradual, continuous range decreases in a sector that \
-correlate with the robot's direction of travel. These are real walls being \
-approached normally.
+Spoofed readings tend to have a different character: an injected signal is \
+generated synthetically and often lacks the organic variation of a real surface. \
+Look for patterns that seem inconsistent with how a real robot moving through a \
+real environment would produce data — consider the robot's motion, the \
+consistency of readings across time, and whether any sector behaves differently \
+from the others in a way that is hard to explain physically.
 
-If an attack is detected, estimate the range value below which readings in the \
+If an attack is detected, estimate the range below which readings in the \
 suspicious sectors are likely fake.
 
 Respond ONLY with a JSON object — no markdown, no explanation outside the JSON:
@@ -112,10 +120,9 @@ class LLMMonitor(Node):
         self._client = genai.Client(api_key=api_key) if api_key else None
 
         self._lock = threading.Lock()
-        self._scan_buffer = []  # list of (rel_time_s, sector_mins)
+        self._scan_buffer = []  # list of (rel_time_s, smins, sstds, (x, y))
         self._ray_history = {}  # ray_idx -> list of recent range values
         self._t0 = None
-        self._odom_start = None
         self._odom_latest = None
         self._latest_scan = None
         self._attack_active = False
@@ -162,10 +169,11 @@ class LLMMonitor(Node):
             if self._t0 is None:
                 self._t0 = now_s
             rel = now_s - self._t0
-            smins = sector_mins(
+            smins, sstds = sector_stats(
                 msg.ranges, msg.angle_min, msg.angle_increment, SECTOR_DEG
             )
-            self._scan_buffer.append((rel, smins))
+            pos = self._odom_latest or (0.0, 0.0, 0.0)
+            self._scan_buffer.append((rel, smins, sstds, pos))
             if len(self._scan_buffer) > BUFFER_SIZE:
                 self._scan_buffer.pop(0)
 
@@ -180,9 +188,11 @@ class LLMMonitor(Node):
     def _odom_cb(self, msg: Odometry):
         with self._lock:
             pos = msg.pose.pose.position
-            if self._odom_start is None:
-                self._odom_start = (pos.x, pos.y)
-            self._odom_latest = (pos.x, pos.y)
+            q = msg.pose.pose.orientation
+            siny = 2.0 * (q.w * q.z + q.x * q.y)
+            cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+            yaw_deg = math.degrees(math.atan2(siny, cosy))
+            self._odom_latest = (pos.x, pos.y, yaw_deg)
 
     # ------------------------------------------------------------------ #
 
@@ -259,31 +269,31 @@ class LLMMonitor(Node):
 
         with self._lock:
             buffer = list(self._scan_buffer)
-            odom_start = self._odom_start
-            odom_latest = self._odom_latest
 
         if len(buffer) < 5:
             return
 
-        # Build displacement string
-        if odom_start and odom_latest:
-            dx = odom_latest[0] - odom_start[0]
-            dy = odom_latest[1] - odom_start[1]
-            disp = f"{math.hypot(dx, dy):.2f} m"
-        else:
-            disp = "unknown"
+        # Displacement from first to last scan in the buffer window
+        p0 = buffer[0][3]
+        p1 = buffer[-1][3]
+        disp = f"{math.hypot(p1[0]-p0[0], p1[1]-p0[1]):.2f} m"
 
-        # Build compact scan table
-        header = "  ".join(f"{l:>10}" for l in SECTOR_LABELS)
+        # Build compact scan table with pose + min±std per sector
+        sector_header = "  ".join(f"{label:>14}" for label in SECTOR_LABELS)
         rows = []
-        for rel, smins in buffer:
-            row = f"t={rel:5.1f}s  " + "  ".join(f"{v:>10.2f}" for v in smins)
-            rows.append(row)
+        for rel, smins, sstds, pose in buffer:
+            x, y, hdg = pose
+            pose_str = f"({x:5.2f},{y:5.2f}) hdg={hdg:+6.1f}°"
+            cells = "  ".join(
+                f"{mn:>6.2f}±{sd:>5.3f}" for mn, sd in zip(smins, sstds)
+            )
+            rows.append(f"t={rel:5.1f}s  {pose_str}  {cells}")
 
         snapshot = (
-            f"Robot displacement over window: {disp}\n\n"
-            f"Scan summaries (min range in metres per 60° sector):\n"
-            f"          {header}\n" + "\n".join(rows)
+            f"Robot displacement over scan window: {disp}\n\n"
+            f"Scan summaries — format: (x,y) heading  |  min_range ± within-scan std (metres):\n"
+            f"                                               {sector_header}\n"
+            + "\n".join(rows)
         )
 
         self.get_logger().info("Querying Gemini...")
