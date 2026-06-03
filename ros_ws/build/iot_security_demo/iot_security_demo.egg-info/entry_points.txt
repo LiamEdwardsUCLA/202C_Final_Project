@@ -1,7 +1,0 @@
-[console_scripts]
-attacker = iot_security_demo.attacker:main
-attacker2 = iot_security_demo.attacker2:main
-attacker3 = iot_security_demo.attacker3:main
-llm_monitor = iot_security_demo.llm_monitor:main
-navigate = iot_security_demo.navigate:main
-rate_filter = iot_security_demo.rate_filter:main

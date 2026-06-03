@@ -1,1 +1,0 @@
-/home/liamedwards/202C_Final_Project/ros_ws/src/iot_security_demo/launch/nav2.launch.py
