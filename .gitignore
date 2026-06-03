@@ -1,0 +1,25 @@
+# ROS2 workspace build artifacts
+ros_ws/build/
+ros_ws/install/
+ros_ws/log/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# Environment / secrets
+.env
+*.env
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

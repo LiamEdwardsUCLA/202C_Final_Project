@@ -14,6 +14,7 @@ import json
 import math
 import os
 import threading
+import datetime
 
 import rclpy
 import rclpy.parameter
@@ -124,8 +125,18 @@ class LLMMonitor(Node):
         # Always forward latest scan (cleaned if attack active)
         self.create_timer(0.1, self._forward)
 
+        log_dir = os.path.expanduser("~/202C_Final_Project/logs")
+        os.makedirs(log_dir, exist_ok=True)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._log_path = os.path.join(log_dir, f"llm_monitor_{ts}.log")
+        with open(self._log_path, "w") as f:
+            f.write(f"LLM Monitor log — started {ts}\n")
+            f.write(f"Model: {MODEL}  Poll interval: {POLL_INTERVAL}s\n")
+            f.write("=" * 70 + "\n\n")
+
         self.get_logger().info(
-            f"LLM monitor active — polling Gemini every {POLL_INTERVAL}s"
+            f"LLM monitor active — polling Gemini every {POLL_INTERVAL}s\n"
+            f"  Conversation log: {self._log_path}"
         )
 
     # ------------------------------------------------------------------ #
@@ -247,6 +258,7 @@ class LLMMonitor(Node):
         threading.Thread(target=self._query, args=(snapshot,), daemon=True).start()
 
     def _query(self, snapshot: str):
+        ts = datetime.datetime.now().strftime("%H:%M:%S")
         try:
             response = self._client.models.generate_content(
                 model=MODEL,
@@ -260,7 +272,13 @@ class LLMMonitor(Node):
             result = json.loads(raw)
         except Exception as e:
             self.get_logger().error(f"Gemini error: {e}")
+            with open(self._log_path, "a") as f:
+                f.write(f"[{ts}] ERROR: {e}\n\n")
             return
+
+        with open(self._log_path, "a") as f:
+            f.write(f"[{ts}] --- PROMPT ---\n{snapshot}\n\n")
+            f.write(f"[{ts}] --- RESPONSE ---\n{json.dumps(result, indent=2)}\n\n")
 
         detected = result.get("attack_detected", False)
         confidence = result.get("confidence", "?")
