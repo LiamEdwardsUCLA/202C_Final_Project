@@ -42,7 +42,7 @@ POLL_INTERVAL = 10.0  # seconds between LLM queries
 BUFFER_SIZE = 15  # number of recent scans to summarise
 SECTOR_DEG = 60  # degrees per summary sector (6 sectors total)
 RAY_HISTORY = 20  # per-ray rolling history depth for median cleaning
-MODEL = "gemini-3-flash-preview"
+MODEL = "gemini-3.1-flash-preview"
 
 
 def sector_stats(ranges, angle_min, angle_increment, sector_deg=60):
@@ -126,7 +126,8 @@ class LLMMonitor(Node):
         self._odom_latest = None
         self._latest_scan = None
         self._attack_active = False
-        self._attack_just_detected = False  # triggers one-shot costmap clear
+        self._attack_just_detected = False
+        self._last_reasoning = None  # carry forward between queries
         self._suspect_range_max = 0.6
 
         self._local_clear = self.create_client(
@@ -269,6 +270,7 @@ class LLMMonitor(Node):
 
         with self._lock:
             buffer = list(self._scan_buffer)
+            last_reasoning = self._last_reasoning
 
         if len(buffer) < 5:
             return
@@ -276,7 +278,7 @@ class LLMMonitor(Node):
         # Displacement from first to last scan in the buffer window
         p0 = buffer[0][3]
         p1 = buffer[-1][3]
-        disp = f"{math.hypot(p1[0]-p0[0], p1[1]-p0[1]):.2f} m"
+        disp = f"{math.hypot(p1[0] - p0[0], p1[1] - p0[1]):.2f} m"
 
         # Build compact scan table with pose + min±std per sector
         sector_header = "  ".join(f"{label:>14}" for label in SECTOR_LABELS)
@@ -284,15 +286,18 @@ class LLMMonitor(Node):
         for rel, smins, sstds, pose in buffer:
             x, y, hdg = pose
             pose_str = f"({x:5.2f},{y:5.2f}) hdg={hdg:+6.1f}°"
-            cells = "  ".join(
-                f"{mn:>6.2f}±{sd:>5.3f}" for mn, sd in zip(smins, sstds)
-            )
+            cells = "  ".join(f"{mn:>6.2f}±{sd:>5.3f}" for mn, sd in zip(smins, sstds))
             rows.append(f"t={rel:5.1f}s  {pose_str}  {cells}")
 
+        prior = (
+            f"Your previous assessment: {last_reasoning}\n\n" if last_reasoning else ""
+        )
+
         snapshot = (
-            f"Robot displacement over scan window: {disp}\n\n"
-            f"Scan summaries — format: (x,y) heading  |  min_range ± within-scan std (metres):\n"
-            f"                                               {sector_header}\n"
+            prior
+            + f"Robot displacement over scan window: {disp}\n\n"
+            + "Scan summaries — format: (x,y) heading  |  min_range ± within-scan std (metres):\n"
+            + f"                                               {sector_header}\n"
             + "\n".join(rows)
         )
 
@@ -326,6 +331,7 @@ class LLMMonitor(Node):
         confidence = result.get("confidence", "?")
         sectors = result.get("suspicious_sectors", [])
         reasoning = result.get("reasoning", "")
+        summary = f"{'ATTACK DETECTED' if detected else 'CLEAN'}, confidence={confidence} — {reasoning}"
 
         if detected:
             suspect_max = result.get("suspect_range_max") or 0.6
@@ -336,13 +342,15 @@ class LLMMonitor(Node):
             )
             with self._lock:
                 if not self._attack_active:
-                    self._attack_just_detected = True  # first detection → clear costmap
+                    self._attack_just_detected = True
                 self._attack_active = True
                 self._suspect_range_max = float(suspect_max)
+                self._last_reasoning = summary
         else:
             self.get_logger().info(f"[CLEAN] confidence={confidence} — {reasoning}")
             with self._lock:
                 self._attack_active = False
+                self._last_reasoning = summary
 
 
 def main():
