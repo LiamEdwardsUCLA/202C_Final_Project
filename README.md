@@ -1,6 +1,6 @@
 # LLM-Assisted LIDAR Spoofing Detection in ROS2
 
-ECE 202C — IoT Security Final Project
+ECE 202C — Final Project
 
 Demonstrates LIDAR spoofing attacks on a simulated autonomous robot and an LLM-based defense using Gemini.
 
