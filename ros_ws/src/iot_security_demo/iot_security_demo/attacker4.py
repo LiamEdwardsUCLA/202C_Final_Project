@@ -10,6 +10,7 @@ robot is physically impossible.
 
 import copy
 import math
+import random
 import rclpy
 import rclpy.parameter
 from rclpy.node import Node
@@ -28,10 +29,12 @@ PUB_QOS = QoSProfile(
 )
 
 WALL_HALF_DEG  = 30
-ROTATE_DEG     = 45    # jump size when rotating
-SCANS_PER_MOVE = 5     # hold position for ~1 second before jumping
+ROTATE_DEG     = 45
+SCANS_PER_MOVE = 5
 RANGE_MIN      = 0.25
 RANGE_MAX      = 0.55
+NOISE_STD      = 0.04   # per-ray Gaussian noise to avoid zero std dev
+DROPOUT_PROB   = 0.08   # chance a ray keeps the real value
 
 
 class Attacker4(Node):
@@ -49,7 +52,6 @@ class Attacker4(Node):
         )
 
     def _cb(self, msg: LaserScan):
-        import random
         n           = len(msg.ranges)
         increment   = msg.angle_increment
         forward_idx = int(round(-msg.angle_min / increment)) % n
@@ -60,7 +62,10 @@ class Attacker4(Node):
         fake = copy.deepcopy(msg)
         fake.header.stamp = self.get_clock().now().to_msg()
         for off in range(-spread, spread + 1):
-            fake.ranges[(center + off) % n] = self._current_range
+            if random.random() < DROPOUT_PROB:
+                continue
+            noisy = self._current_range + random.gauss(0, NOISE_STD)
+            fake.ranges[(center + off) % n] = max(msg.range_min + 0.01, noisy)
 
         self.pub.publish(fake)
 
