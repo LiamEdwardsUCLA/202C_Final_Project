@@ -62,35 +62,38 @@ def sector_mins(ranges, angle_min, angle_increment, sector_deg=60):
 SECTOR_LABELS = ["front", "front-left", "left", "rear", "right", "front-right"]
 
 SYSTEM_PROMPT = """\
-You are a security monitor for a mobile robot's 360° LIDAR sensor.
-The sensor publishes scans at ~10 Hz. Each scan covers 360° with 1° resolution.
-A known attack injects fake obstacle readings at a short \
-range (typically 0.3–0.5 m), causing the robot to think there is a wall directly \
-ahead when there is none. The fake readings may include noise and dropouts to \
-appear more realistic.
+You are a security monitor for a mobile robot's 360° LIDAR sensor. Your job is \
+to determine whether sensor readings are physically plausible given the robot's \
+motion, or whether they indicate injected spoofed data.
 
-You will receive scan summaries (minimum range per 60° sector) over a recent window \
-and the robot's displacement. Determine whether a spoofing attack is occurring.
+You will receive scan summaries (minimum range per 60° sector) over a recent \
+window and the robot's total displacement over that window.
 
-Signs of an attack:
-- Sudden appearance of a close obstacle (< 0.6 m) that persists across many \
-consecutive scans.
-- The obstacle range stays roughly constant despite robot movement (a real obstacle \
-would gradually change as the robot approaches or turns).
-- An obstacle that shifts between sectors across scans while the robot is stationary \
-(a real obstacle cannot move around a stationary robot).
-- Other sectors show normal, varying ranges inconsistent with the robot being boxed in.
+Core physical principle: in a static environment, obstacle distances only change \
+because the ROBOT moves. Apply this strictly:
+- If the robot moved significantly, changing ranges in any sector are expected \
+  and normal — the robot is approaching or receding from real walls.
+- If the robot barely moved, obstacle distances should remain nearly constant. \
+  A sector that suddenly shows a much closer reading without the robot having \
+  moved toward it is physically implausible and likely injected.
+- An obstacle that appears instantly (discontinuous jump in one step) rather than \
+  gradually decreasing as the robot approaches is suspicious.
+- An obstacle that shifts between different sectors across scans while the robot \
+  is stationary cannot be real — real obstacles do not move.
 
-If an attack is detected, also estimate the approximate range threshold: readings \
-below this value in the suspicious sectors are likely fake, while readings at or \
-above it (e.g. a real wall further away) should be preserved.
+Do NOT flag as suspicious: gradual, continuous range decreases in a sector that \
+correlate with the robot's direction of travel. These are real walls being \
+approached normally.
+
+If an attack is detected, estimate the range value below which readings in the \
+suspicious sectors are likely fake.
 
 Respond ONLY with a JSON object — no markdown, no explanation outside the JSON:
 {
   "attack_detected": <true|false>,
   "suspicious_sectors": [<list of sector labels from: front, front-left, \
 front-right, left, right, rear>],
-  "suspect_range_max": <float, metres — readings below this are likely fake, \
+  "suspect_range_max": <float, metres — readings below this are fake, \
 null if no attack>,
   "confidence": <"high"|"medium"|"low">,
   "reasoning": "<one or two sentences>"

@@ -1,0 +1,98 @@
+LLM Monitor log — started 20260602_230307
+Model: gemini-3.1-flash-lite  Poll interval: 10.0s
+======================================================================
+
+[23:03:13] --- PROMPT ---
+Robot displacement over window: 0.00 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t=  2.8s        0.89        1.20        0.61        0.51        0.62        0.94
+t=  3.0s        0.90        1.20        0.61        0.52        0.62        0.94
+t=  3.2s        0.90        1.21        0.60        0.51        0.61        0.95
+t=  3.4s        0.90        1.18        0.62        0.52        0.62        0.96
+t=  3.6s        0.89        1.20        0.61        0.52        0.61        0.95
+t=  3.8s        0.89        1.21        0.63        0.51        0.62        0.95
+t=  4.0s        0.90        1.20        0.60        0.51        0.63        0.95
+t=  4.2s        0.90        1.19        0.61        0.51        0.61        0.96
+t=  4.4s        0.90        1.19        0.60        0.52        0.61        0.95
+t=  4.6s        0.89        1.21        0.62        0.52        0.62        0.95
+t=  4.8s        0.89        1.20        0.62        0.51        0.62        0.95
+t=  5.0s        0.89        1.19        0.61        0.51        0.61        0.94
+t=  5.2s        0.91        1.18        0.61        0.51        0.61        0.95
+t=  5.4s        0.90        1.21        0.61        0.51        0.60        0.93
+t=  5.6s        0.90        1.19        0.62        0.51        0.62        0.95
+
+[23:03:13] --- RESPONSE ---
+{
+  "attack_detected": false,
+  "suspicious_sectors": [],
+  "suspect_range_max": null,
+  "confidence": "high",
+  "reasoning": "The robot's displacement is zero, and all sector readings show only minor, stochastic fluctuations consistent with sensor noise rather than persistent, directed spoofing."
+}
+
+[23:03:23] --- PROMPT ---
+Robot displacement over window: 0.13 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 15.5s        0.35        0.35        0.68        0.60        0.78        0.35
+t= 15.5s        0.35        0.35        0.71        0.61        0.74        0.35
+t= 15.5s        0.35        0.35        0.90        0.60        0.63        0.35
+t= 15.5s        0.35        0.35        1.13        0.63        0.62        0.35
+t= 15.5s        0.35        0.35        0.79        0.58        0.63        0.35
+t= 15.5s        0.35        0.35        0.61        0.52        0.62        0.35
+t= 15.5s        0.35        0.35        1.14        0.63        0.62        0.35
+t= 15.5s        0.35        0.35        0.78        0.61        0.67        0.35
+t= 15.5s        0.35        0.35        0.68        0.60        0.78        0.35
+t= 15.5s        0.35        0.35        0.71        0.61        0.74        0.35
+t= 15.5s        0.35        0.35        0.90        0.60        0.63        0.35
+t= 15.5s        0.35        0.35        1.13        0.62        0.63        0.35
+t= 15.5s        0.35        0.35        0.79        0.58        0.63        0.35
+t= 15.5s        0.35        0.35        0.61        0.52        0.62        0.35
+t= 15.5s        0.35        0.35        1.14        0.63        0.62        0.35
+
+[23:03:23] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "left"
+  ],
+  "suspect_range_max": 1.15,
+  "confidence": "high",
+  "reasoning": "With minimal robot displacement, the left sector exhibits rapid, non-physical oscillations between 0.61m and 1.14m, which is indicative of synthetic sensor noise or spoofing rather than environmental changes."
+}
+
+[23:03:33] --- PROMPT ---
+Robot displacement over window: 1.82 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 25.5s        0.35        0.35        0.71        0.65        0.58        0.35
+t= 25.5s        0.35        0.35        0.72        0.68        0.52        0.35
+t= 25.5s        0.35        0.35        0.68        0.62        1.76        0.35
+t= 25.5s        0.35        0.35        0.86        0.84        0.43        0.35
+t= 25.5s        0.35        0.35        0.82        0.79        0.43        0.35
+t= 25.5s        0.35        0.35        0.76        0.72        0.50        0.35
+t= 25.5s        0.35        0.35        0.62        0.55        1.67        0.35
+t= 25.5s        0.35        0.35        0.90        0.87        0.41        0.35
+t= 25.5s        0.35        0.35        0.71        0.65        0.58        0.35
+t= 25.5s        0.35        0.35        0.72        0.68        0.52        0.35
+t= 25.5s        0.35        0.35        0.68        0.62        1.76        0.35
+t= 25.5s        0.35        0.35        0.65        0.58        1.73        0.35
+t= 25.5s        0.35        0.35        0.82        0.79        0.43        0.35
+t= 25.5s        0.35        0.35        0.76        0.72        0.50        0.35
+t= 25.5s        0.35        0.35        0.90        0.87        0.41        0.35
+
+[23:03:33] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "right"
+  ],
+  "suspect_range_max": 1.76,
+  "confidence": "high",
+  "reasoning": "The right sector shows erratic, discontinuous jumps between 0.41m and 1.76m while the robot is moving uniformly, which is physically impossible for a static environment."
+}
+
