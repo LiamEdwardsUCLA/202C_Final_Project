@@ -116,7 +116,7 @@ class LLMMonitor(Node):
         self._suspect_range_max = 0.6  # updated by Gemini response
 
         self.scan_sub = self.create_subscription(
-            LaserScan, "/scan_filtered", self._scan_cb, SENSOR_QOS
+            LaserScan, "/scan", self._scan_cb, SENSOR_QOS
         )
         self.odom_sub = self.create_subscription(Odometry, "/odom", self._odom_cb, 10)
         self.pub = self.create_publisher(LaserScan, "/scan_verified", PUB_QOS)

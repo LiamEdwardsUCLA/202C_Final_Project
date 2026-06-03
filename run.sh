@@ -5,8 +5,7 @@ source "$PROJECT/_common.sh"
 
 _kill_all
 _start_gazebo
-_start_nav2 "nav2.launch.py" "Nav2 (baseline)"
+_start_nav2 "nav2.launch.py" "Nav2"
 _start_navigate
 
-echo ""
-echo "Baseline running — robot navigating on /scan with no defense."
+echo "Baseline running — robot navigating normally."

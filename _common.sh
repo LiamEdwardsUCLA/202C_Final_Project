@@ -51,16 +51,6 @@ _start_nav2() {
   echo "    Nav2 is up."
 }
 
-_start_rate_filter() {
-  echo "==> Starting rate filter..."
-  gnome-terminal --title="Rate Filter" -- bash -c "
-    source /opt/ros/humble/setup.bash
-    source $PROJECT/ros_ws/install/setup.bash
-    ros2 run iot_security_demo rate_filter
-    exec bash"
-  sleep 2
-}
-
 _start_llm_monitor() {
   echo "==> Starting LLM monitor..."
   gnome-terminal --title="LLM Monitor" -- bash -c "
@@ -85,7 +75,7 @@ _start_navigate() {
 _start_attacker() {
   local node="$1"
   local title="$2"
-  local delay="${3:-8}"
+  local delay="${3:-15}"
   echo "==> Waiting ${delay}s for robot to start moving..."
   sleep "$delay"
   echo "==> Launching $title..."

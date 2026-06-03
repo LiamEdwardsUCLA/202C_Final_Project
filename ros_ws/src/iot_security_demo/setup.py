@@ -22,6 +22,7 @@ setup(
             'attacker = iot_security_demo.attacker:main',
             'attacker2 = iot_security_demo.attacker2:main',
             'attacker3 = iot_security_demo.attacker3:main',
+            'attacker4 = iot_security_demo.attacker4:main',
             'rate_filter = iot_security_demo.rate_filter:main',
             'llm_monitor = iot_security_demo.llm_monitor:main',
         ],

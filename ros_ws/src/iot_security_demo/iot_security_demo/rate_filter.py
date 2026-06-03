@@ -1,3 +1,6 @@
+import time as _time
+from collections import deque
+
 import rclpy
 import rclpy.parameter
 from rclpy.node import Node
@@ -15,42 +18,51 @@ PUB_QOS = QoSProfile(
     durability=DurabilityPolicy.VOLATILE,
 )
 
-MAX_RATE_HZ = 15.0  # real sensor is ~10 Hz; anything faster is suspicious
+WINDOW_S = 1.0       # sliding window duration
+MAX_PER_WINDOW = 12  # allow up to 12 messages/sec (real sensor ~5 Hz)
 
 
 class RateFilter(Node):
     def __init__(self, **kwargs):
         super().__init__('rate_filter', **kwargs)
-        self._last_stamp = None
-        self._min_interval_ns = int(1e9 / MAX_RATE_HZ)
+        self._window = deque()  # wall-clock receive times of passed messages
         self._dropped = 0
         self._passed = 0
+        self._total = 0
 
         self.sub = self.create_subscription(
             LaserScan, '/scan', self._cb, SENSOR_QOS)
         self.pub = self.create_publisher(
             LaserScan, '/scan_filtered', PUB_QOS)
 
+        self.create_timer(5.0, self._log_stats)
         self.get_logger().info(
-            f'Rate filter active: passing ≤{MAX_RATE_HZ} Hz, '
+            f'Rate filter active: max {MAX_PER_WINDOW} msgs/{WINDOW_S}s window, '
             'forwarding to /scan_filtered')
 
     def _cb(self, msg: LaserScan):
-        stamp_ns = msg.header.stamp.sec * 10**9 + msg.header.stamp.nanosec
+        self._total += 1
+        now = _time.monotonic()
 
-        if self._last_stamp is not None:
-            interval_ns = stamp_ns - self._last_stamp
-            if interval_ns < self._min_interval_ns:
-                self._dropped += 1
-                if self._dropped % 50 == 0:
-                    self.get_logger().warn(
-                        f'Dropping high-rate scans '
-                        f'(dropped={self._dropped}, passed={self._passed})')
-                return
+        # Evict timestamps outside the window
+        while self._window and now - self._window[0] > WINDOW_S:
+            self._window.popleft()
 
-        self._last_stamp = stamp_ns
+        if len(self._window) >= MAX_PER_WINDOW:
+            self._dropped += 1
+            return
+
+        self._window.append(now)
         self._passed += 1
         self.pub.publish(msg)
+
+    def _log_stats(self):
+        self.get_logger().info(
+            f'Stats — received={self._total}, passed={self._passed}, '
+            f'dropped={self._dropped} in last 5s')
+        self._total = 0
+        self._passed = 0
+        self._dropped = 0
 
 
 def main():

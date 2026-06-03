@@ -2,7 +2,7 @@
 
 ECE 202C — IoT Security Final Project
 
-Demonstrates LIDAR spoofing attacks on a simulated autonomous robot and two defenses: a classical rate filter and a Gemini-based anomaly monitor.
+Demonstrates LIDAR spoofing attacks on a simulated autonomous robot and an LLM-based defense using Gemini.
 
 ---
 
@@ -17,7 +17,7 @@ Demonstrates LIDAR spoofing attacks on a simulated autonomous robot and two defe
   ```bash
   pip install google-genai
   ```
-- A Gemini API key (for Defense 2 only)
+- A Gemini API key (for the defense)
 
 ---
 
@@ -31,9 +31,7 @@ colcon build --symlink-install
 
 ---
 
-## Scenarios
-
-All scripts open separate terminal windows for each component and wait for each layer to be ready before starting the next.
+## Running
 
 ### Baseline — robot navigates normally
 
@@ -41,88 +39,48 @@ All scripts open separate terminal windows for each component and wait for each 
 ./run.sh
 ```
 
-Starts Gazebo, Nav2, and sends a navigation goal from (-2, -0.5) to (2, 0). No attack, no defense.
+TurtleBot3 navigates from (-2, -0.5) to (2, 0) in the turtlebot3_world map using Nav2 + AMCL.
 
 ---
 
-### Attack 1 — Frequency flood (30 Hz, no defense)
+### Attack — robot is blocked
 
 ```bash
-./run_attack1.sh
+./run_attack.sh                         # simple 30 Hz flood (default)
+ATTACKER=attacker2 ./run_attack.sh      # frequency-matched clean wall
+ATTACKER=attacker3 ./run_attack.sh      # frequency-matched noisy wall
+ATTACKER=attacker4 ./run_attack.sh      # gradual approach (hardest)
 ```
 
-Nav2 reads `/scan` directly. The flood attacker launches automatically once the robot starts moving. The robot stops and cannot navigate.
+An attacker node publishes fake LIDAR scans on `/scan`. Nav2 has no way to verify the source — the robot sees the fake wall and stops.
+
+| Attacker | Rate | Description |
+|---|---|---|
+| `attacker` | 30 Hz | Simple clean semicircle — flood attack |
+| `attacker2` | ~5 Hz | Clean semicircle, frequency-matched |
+| `attacker3` | ~5 Hz | Noisy wall with dropouts and arc jitter |
+| `attacker4` | ~5 Hz | Obstacle "approaches" from 2 m → 0.35 m over ~10 scans |
 
 ---
 
-### Defense 1 — Rate filter blocks Attack 1
-
-```bash
-./run_defense1.sh
-```
-
-Rate filter enforces ≤ 15 Hz on `/scan_filtered`. Attack 1 launches automatically — the robot ignores it and navigates normally.
-
----
-
-### Attack 2 — Timestamp-spoofed (bypasses rate filter)
-
-```bash
-./run_attack2.sh
-```
-
-Same rate filter setup, but launches `attacker2` instead. Spoofed timestamps slip past the filter (zero drops logged) — robot is still blocked.
-
----
-
-### Attack 3 — Noisy wall (bypasses rate filter)
-
-```bash
-./run_attack3.sh
-```
-
-Same as Attack 2 but with per-ray Gaussian noise, dropouts, and arc jitter to look more like a real surface.
-
----
-
-### Defense 2 — LLM monitor catches Attacks 2 & 3
+### Defense — LLM monitor detects and cleans the attack
 
 ```bash
 export GEMINI_API_KEY=your_key_here
-./run_defense2.sh                        # default: attacker3
-ATTACKER=attacker2 ./run_defense2.sh     # use attacker2 instead
+./run_defense.sh                        # gradual approach attacker (default)
+ATTACKER=attacker3 ./run_defense.sh     # noisy wall
+ATTACKER=attacker  ./run_defense.sh     # simple flood
 ```
 
-Adds the LLM monitor downstream of the rate filter:
+The LLM monitor sits between `/scan` and Nav2:
 
 ```
-/scan → rate_filter → /scan_filtered → llm_monitor → /scan_verified → Nav2
+/scan  →  llm_monitor  →  /scan_verified  →  Nav2
 ```
 
-Every 10 seconds the monitor sends Gemini a snapshot of recent scan data and robot odometry. If an attack is detected, suspicious rays are restored to their historical median (preserving real obstacles). Conversation logs are written to `~/202C_Final_Project/logs/`.
+Every 10 seconds it sends Gemini a snapshot of recent scan data (min range per 60° sector) and robot odometry. When an attack is detected, suspicious rays are restored to their historical median rather than zeroed — real obstacles are preserved, fake ones are removed. The robot resumes navigating.
 
----
-
-## Topic Pipeline
-
-| Scenario | Topics |
-|---|---|
-| No defense | `/scan` → Nav2 |
-| Defense 1 | `/scan` → `rate_filter` → `/scan_filtered` → Nav2 |
-| Defense 2 | `/scan` → `rate_filter` → `/scan_filtered` → `llm_monitor` → `/scan_verified` → Nav2 |
-
----
-
-## Nodes
-
-| Node | Command | Description |
-|---|---|---|
-| `attacker` | `ros2 run iot_security_demo attacker` | Flood attack at 30 Hz |
-| `attacker2` | `ros2 run iot_security_demo attacker2` | Timestamp-spoofed at ~10 Hz |
-| `attacker3` | `ros2 run iot_security_demo attacker3` | Noisy timestamp-spoofed at ~10 Hz |
-| `rate_filter` | `ros2 run iot_security_demo rate_filter` | Rate-based relay filter |
-| `llm_monitor` | `ros2 run iot_security_demo llm_monitor` | Gemini anomaly monitor |
-| `navigate` | `ros2 run iot_security_demo navigate` | Send navigation goal |
+Conversation logs are saved to `~/202C_Final_Project/logs/`.
 
 ---
 
@@ -131,18 +89,16 @@ Every 10 seconds the monitor sends Gemini a snapshot of recent scan data and rob
 ```
 ros_ws/src/iot_security_demo/
   iot_security_demo/
-    attacker.py        # Attack 1: 30 Hz flood
-    attacker2.py       # Attack 2: timestamp-spoofed 10 Hz
-    attacker3.py       # Attack 3: noisy timestamp-spoofed 10 Hz
-    rate_filter.py     # Defense 1: rate-based relay
-    llm_monitor.py     # Defense 2: Gemini anomaly monitor
-    navigate.py        # Nav2 goal sender
+    attacker.py        # 30 Hz flood
+    attacker2.py       # ~5 Hz clean wall
+    attacker3.py       # ~5 Hz noisy wall
+    attacker4.py       # ~5 Hz gradual approach
+    llm_monitor.py     # Gemini anomaly detector + scan cleaner
+    navigate.py        # sends Nav2 goal
   launch/
-    gazebo.launch.py        # Gazebo + TurtleBot3
-    nav2.launch.py          # Nav2 (baseline, uses /scan)
-    nav2_defense.launch.py  # Nav2 with rate filter (uses /scan_filtered)
-    nav2_llm.launch.py      # Nav2 with LLM defense (uses /scan_verified)
+    gazebo.launch.py       # Gazebo + TurtleBot3
+    nav2.launch.py         # Nav2 using /scan  (baseline + attack)
+    nav2_llm.launch.py     # Nav2 using /scan_verified  (defense)
   param/
-    burger_filtered.yaml    # Nav2 params pointing to /scan_filtered
-    burger_verified.yaml    # Nav2 params pointing to /scan_verified
+    burger_verified.yaml   # Nav2 params pointing to /scan_verified
 ```
