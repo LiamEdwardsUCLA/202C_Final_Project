@@ -1,0 +1,311 @@
+LLM Monitor log — started 20260602_212908
+Model: gemini-3.1-flash-lite  Poll interval: 10.0s
+======================================================================
+
+[21:29:14] --- PROMPT ---
+Robot displacement over window: 0.00 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t=  2.8s        0.89        1.21        0.61        0.51        0.60        0.95
+t=  3.0s        0.89        1.19        0.61        0.52        0.62        0.95
+t=  3.2s        0.90        1.19        0.60        0.51        0.62        0.95
+t=  3.4s        0.90        1.20        0.62        0.51        0.62        0.95
+t=  3.6s        0.89        1.19        0.62        0.51        0.60        0.96
+t=  3.8s        0.90        1.21        0.61        0.51        0.61        0.94
+t=  4.0s        0.90        1.20        0.62        0.51        0.61        0.95
+t=  4.2s        0.90        1.20        0.62        0.52        0.62        0.94
+t=  4.4s        0.89        1.20        0.61        0.52        0.61        0.94
+t=  4.6s        0.90        1.20        0.60        0.51        0.61        0.94
+t=  4.8s        0.90        1.21        0.60        0.51        0.61        0.95
+t=  5.0s        0.89        1.18        0.61        0.52        0.62        0.95
+t=  5.2s        0.91        1.22        0.62        0.52        0.60        0.96
+t=  5.4s        0.89        1.20        0.62        0.52        0.61        0.94
+t=  5.6s        0.89        1.19        0.62        0.51        0.61        0.95
+
+[21:29:14] --- RESPONSE ---
+{
+  "attack_detected": false,
+  "suspicious_sectors": [],
+  "suspect_range_max": null,
+  "confidence": "high",
+  "reasoning": "The obstacle ranges across all sectors are consistent and stable with zero robot displacement, showing no anomalous, persistent, or suspiciously close readings typical of a spoofing attack."
+}
+
+[21:29:24] --- PROMPT ---
+Robot displacement over window: 0.07 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 15.5s        0.24        0.30        0.57        0.69        0.30        0.23
+t= 15.5s        0.27        0.31        0.66        0.58        0.35        0.31
+t= 15.5s        0.30        0.35        0.58        0.57        0.36        0.29
+t= 15.5s        0.28        0.33        0.86        0.56        0.31        0.26
+t= 15.5s        0.27        0.29        0.62        0.56        0.28        0.27
+t= 15.5s        0.20        0.35        0.57        0.63        0.37        0.29
+t= 15.5s        0.23        0.36        0.57        0.57        0.36        0.29
+t= 15.5s        0.27        0.33        0.58        0.81        0.32        0.26
+t= 15.5s        0.16        0.27        0.56        0.60        0.32        0.24
+t= 15.5s        0.29        0.31        0.73        0.56        0.33        0.26
+t= 15.5s        0.24        0.30        0.57        0.69        0.30        0.28
+t= 15.5s        0.25        0.31        0.66        0.58        0.35        0.26
+t= 15.5s        0.28        0.34        0.58        0.57        0.29        0.28
+t= 15.5s        0.27        0.33        0.86        0.56        0.31        0.29
+t= 15.5s        0.25        0.29        0.62        0.56        0.28        0.28
+
+[21:29:24] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right"
+  ],
+  "suspect_range_max": 0.4,
+  "confidence": "high",
+  "reasoning": "The front-facing sectors show a persistent, low-range obstacle despite minimal robot movement, while other sectors show fluctuating values consistent with valid environmental changes."
+}
+
+[21:29:34] --- PROMPT ---
+Robot displacement over window: 0.31 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 25.5s        0.31        0.29        0.78        0.76        0.31        0.28
+t= 25.5s        0.30        0.28        0.79        0.83        0.35        0.21
+t= 25.5s        0.28        0.32        1.24        0.73        0.33        0.28
+t= 25.5s        0.24        0.38        1.04        0.73        0.35        0.21
+t= 25.5s        0.21        0.27        1.16        0.71        0.33        0.26
+t= 25.5s        0.26        0.37        0.90        0.74        0.28        0.26
+t= 25.5s        0.28        0.33        1.27        0.76        0.25        0.27
+t= 25.5s        0.25        0.30        0.78        0.80        0.33        0.26
+t= 25.5s        0.26        0.37        1.24        0.73        0.33        0.25
+t= 25.5s        0.25        0.34        0.78        0.84        0.35        0.28
+t= 25.5s        0.24        0.29        0.78        0.76        0.31        0.30
+t= 25.5s        0.30        0.33        0.79        0.83        0.37        0.24
+t= 25.5s        0.26        0.32        1.24        0.73        0.33        0.26
+t= 25.5s        0.23        0.27        1.16        0.71        0.33        0.30
+t= 25.5s        0.28        0.35        0.90        0.74        0.35        0.26
+
+[21:29:34] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right",
+    "right"
+  ],
+  "suspect_range_max": 0.45,
+  "confidence": "high",
+  "reasoning": "The robot exhibits static, close-range obstacle readings in the forward-facing sectors despite continuous forward displacement, which would otherwise lead to a decrease in range readings."
+}
+
+[21:29:44] --- PROMPT ---
+Robot displacement over window: 0.92 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 35.5s        0.28        0.23        0.26        1.34        0.30        0.29
+t= 35.5s        0.26        0.21        0.29        1.31        0.21        0.24
+t= 35.5s        0.25        0.30        0.97        0.53        0.30        0.22
+t= 35.5s        0.26        0.22        1.62        1.27        0.30        0.27
+t= 35.5s        0.28        0.23        0.26        1.35        0.27        0.26
+t= 35.5s        0.27        0.22        0.25        1.32        0.34        0.26
+t= 35.5s        0.28        0.30        1.37        1.20        0.37        0.25
+t= 35.5s        0.28        0.27        0.98        0.53        0.35        0.28
+t= 35.5s        0.27        0.25        0.26        1.35        0.31        0.25
+t= 35.5s        0.27        0.23        0.27        1.35        0.30        0.29
+t= 35.5s        0.29        0.23        0.26        1.34        0.30        0.28
+t= 35.5s        0.29        0.21        0.29        1.31        0.21        0.24
+t= 35.5s        0.25        0.30        0.97        0.53        0.30        0.22
+t= 35.5s        0.27        0.22        1.62        1.27        0.30        0.30
+t= 35.5s        0.26        0.23        0.26        1.35        0.27        0.25
+
+[21:29:44] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right",
+    "right"
+  ],
+  "suspect_range_max": 0.4,
+  "confidence": "high",
+  "reasoning": "The front and front-side sectors show persistent, low-range obstacles that do not change despite significant robot movement, while the left and rear sectors demonstrate dynamic range fluctuations."
+}
+
+[21:29:54] --- PROMPT ---
+Robot displacement over window: 1.27 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 45.5s        0.22        0.30        0.59        0.55        0.35        0.25
+t= 45.5s        0.26        0.37        0.55        0.78        0.21        0.26
+t= 45.5s        0.28        0.29        0.58        0.53        0.32        0.29
+t= 45.5s        0.24        0.33        0.41        0.60        0.30        0.27
+t= 45.5s        0.29        0.33        0.35        1.44        0.30        0.25
+t= 45.5s        0.23        0.22        1.63        0.54        0.24        0.24
+t= 45.5s        0.24        0.29        0.55        0.56        0.36        0.26
+t= 45.5s        0.26        0.33        0.55        0.86        0.36        0.26
+t= 45.5s        0.30        0.28        1.61        0.53        0.32        0.26
+t= 45.5s        0.27        0.26        0.33        1.47        0.33        0.22
+t= 45.5s        0.25        0.30        0.59        0.55        0.35        0.27
+t= 45.5s        0.23        0.35        0.55        0.78        0.24        0.23
+t= 45.5s        0.27        0.29        0.58        0.53        0.32        0.31
+t= 45.5s        0.27        0.33        0.41        0.60        0.30        0.25
+t= 45.5s        0.29        0.27        0.35        1.44        0.30        0.25
+
+[21:29:54] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right",
+    "right"
+  ],
+  "suspect_range_max": 0.4,
+  "confidence": "high",
+  "reasoning": "The robot moved 1.27m, yet the obstacle readings in the forward sectors remained consistently low (mostly <0.35m), indicating these are injected fake readings rather than physical environment constraints."
+}
+
+[21:30:04] --- PROMPT ---
+Robot displacement over window: 1.86 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 55.5s        0.28        0.39        0.72        0.97        0.42        0.26
+t= 55.5s        0.30        0.34        0.74        0.87        0.17        0.28
+t= 55.5s        0.27        0.34        0.72        0.89        0.30        0.26
+t= 55.5s        0.25        0.24        0.72        0.85        0.34        0.23
+t= 55.5s        0.25        0.31        0.60        0.66        0.29        0.24
+t= 55.5s        0.24        0.27        0.63        1.06        0.25        0.29
+t= 55.5s        0.27        0.37        0.62        1.07        0.28        0.24
+t= 55.5s        0.22        0.32        0.72        0.85        0.29        0.25
+t= 55.5s        0.25        0.28        0.65        1.06        0.24        0.27
+t= 55.5s        0.29        0.30        0.71        0.87        0.25        0.30
+t= 55.5s        0.23        0.39        0.72        0.97        0.42        0.31
+t= 55.5s        0.22        0.34        0.74        0.87        0.17        0.29
+t= 55.5s        0.30        0.26        0.72        0.89        0.30        0.29
+t= 55.5s        0.28        0.24        0.72        0.85        0.34        0.28
+t= 55.5s        0.24        0.29        0.60        0.66        0.34        0.23
+
+[21:30:04] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right",
+    "right"
+  ],
+  "suspect_range_max": 0.45,
+  "confidence": "high",
+  "reasoning": "The robot moved 1.86m, yet the minimum range in the forward and front-right sectors remained consistently locked between 0.2m and 0.4m, indicating a spoofed static obstacle."
+}
+
+[21:30:14] --- PROMPT ---
+Robot displacement over window: 1.78 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 65.5s        0.27        0.34        0.91        0.81        0.13        0.29
+t= 65.5s        0.28        0.32        0.94        0.14        0.17        0.23
+t= 65.5s        0.26        0.24        0.89        0.15        0.17        0.28
+t= 65.5s        0.25        0.28        0.83        0.14        0.12        0.24
+t= 65.5s        0.25        0.34        0.90        0.15        0.15        0.32
+t= 65.5s        0.26        0.34        0.88        0.14        0.15        0.28
+t= 65.5s        0.28        0.32        0.91        0.15        0.17        0.21
+t= 65.5s        0.25        0.33        0.87        0.12        0.14        0.29
+t= 65.5s        0.29        0.31        0.93        0.16        0.18        0.28
+t= 65.5s        0.28        0.32        1.14        0.80        0.14        0.27
+t= 65.5s        0.28        0.34        0.91        0.81        0.13        0.29
+t= 65.5s        0.28        0.32        0.94        0.14        0.17        0.23
+t= 65.5s        0.24        0.33        0.89        0.15        0.17        0.27
+t= 65.5s        0.30        0.30        0.83        0.14        0.12        0.31
+t= 65.5s        0.30        0.34        0.90        0.15        0.15        0.24
+
+[21:30:14] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right",
+    "right"
+  ],
+  "suspect_range_max": 0.4,
+  "confidence": "high",
+  "reasoning": "The robot moved 1.78 meters, yet the range readings in the forward-facing and right sectors remained consistently trapped between 0.12m and 0.34m, indicating injected sensor data rather than actual obstacles."
+}
+
+[21:30:24] --- PROMPT ---
+Robot displacement over window: 1.76 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 75.5s        0.28        0.32        0.12        0.12        0.34        0.28
+t= 75.5s        0.26        0.35        0.14        0.12        0.35        0.26
+t= 75.5s        0.25        0.31        0.12        0.12        0.35        0.26
+t= 75.5s        0.27        0.34        0.12        0.12        0.28        0.25
+t= 75.5s        0.27        0.24        0.20        0.16        0.28        0.29
+t= 75.5s        0.26        0.29        1.51        0.12        0.17        0.28
+t= 75.5s        0.29        0.33        0.18        0.15        0.30        0.26
+t= 75.5s        0.27        0.30        0.15        0.12        0.33        0.28
+t= 75.5s        0.27        0.35        0.12        0.12        0.32        0.27
+t= 75.5s        0.27        0.32        0.19        0.16        0.33        0.29
+t= 75.5s        0.25        0.32        0.12        0.12        0.34        0.24
+t= 75.5s        0.23        0.35        0.14        0.12        0.35        0.28
+t= 75.5s        0.25        0.31        0.12        0.12        0.35        0.23
+t= 75.5s        0.26        0.34        0.12        0.12        0.28        0.25
+t= 75.5s        0.28        0.24        0.20        0.16        0.28        0.25
+
+[21:30:24] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right"
+  ],
+  "suspect_range_max": 0.4,
+  "confidence": "high",
+  "reasoning": "The robot has displaced 1.76m, yet the front-facing sectors show a consistently low range (0.23m-0.35m) that does not change relative to the movement, indicating injected artificial obstacles."
+}
+
+[21:30:34] --- PROMPT ---
+Robot displacement over window: 1.76 m
+
+Scan summaries (min range in metres per 60° sector):
+               front  front-left        left        rear       right  front-right
+t= 85.5s        0.29        0.31        0.15        0.13        0.38        0.30
+t= 85.5s        0.25        0.34        0.13        0.12        0.33        0.23
+t= 85.5s        0.27        0.33        0.16        0.13        0.38        0.25
+t= 85.5s        0.25        0.33        0.12        0.12        0.25        0.25
+t= 85.5s        0.21        0.36        0.18        0.13        0.35        0.28
+t= 85.5s        0.24        0.28        0.12        0.12        0.29        0.29
+t= 85.5s        0.30        0.31        0.16        0.14        0.28        0.28
+t= 85.5s        0.26        0.31        0.16        0.12        0.34        0.29
+t= 85.5s        0.18        0.27        0.14        0.13        0.33        0.29
+t= 85.5s        0.25        0.23        0.12        0.12        0.31        0.30
+t= 85.5s        0.28        0.31        0.15        0.13        0.38        0.27
+t= 85.5s        0.25        0.34        0.13        0.12        0.33        0.30
+t= 85.5s        0.26        0.33        0.16        0.13        0.38        0.30
+t= 85.5s        0.27        0.30        0.12        0.12        0.32        0.28
+t= 85.5s        0.21        0.29        0.18        0.13        0.33        0.25
+
+[21:30:34] --- RESPONSE ---
+{
+  "attack_detected": true,
+  "suspicious_sectors": [
+    "front",
+    "front-left",
+    "front-right"
+  ],
+  "suspect_range_max": 0.4,
+  "confidence": "high",
+  "reasoning": "The robot has moved 1.76m, yet the front sectors consistently report static close-range obstacles (0.18-0.36m) that do not correlate with displacement, indicating spoofed sensor data."
+}
+

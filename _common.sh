@@ -75,7 +75,7 @@ _start_navigate() {
 _start_attacker() {
   local node="$1"
   local title="$2"
-  local delay="${3:-15}"
+  local delay="${3:-8}"
   echo "==> Waiting ${delay}s for robot to start moving..."
   sleep "$delay"
   echo "==> Launching $title..."

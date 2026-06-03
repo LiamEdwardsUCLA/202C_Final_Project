@@ -59,7 +59,7 @@ An attacker node publishes fake LIDAR scans on `/scan`. Nav2 has no way to verif
 | `attacker` | 30 Hz | Simple clean semicircle — flood attack |
 | `attacker2` | ~5 Hz | Clean semicircle, frequency-matched |
 | `attacker3` | ~5 Hz | Noisy wall with dropouts and arc jitter |
-| `attacker4` | ~5 Hz | Obstacle "approaches" from 2 m → 0.35 m over ~10 scans |
+| `attacker4` | ~5 Hz | ±45° wall rotating 15°/scan — always intercepts the planned path |
 
 ---
 

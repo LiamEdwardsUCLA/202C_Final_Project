@@ -1,9 +1,13 @@
 """
-Attacker 4: gradual approach at sensor rate (~5 Hz).
-The fake obstacle starts at 2.0 m and "approaches" to 0.35 m over ~10 scans,
-mimicking a real obstacle moving toward the robot. Physically implausible because
-the robot itself isn't moving — the LLM must correlate scan changes with odometry.
+Attacker 4: rotating wall at sensor rate (~5 Hz).
+
+A clean ±45° arc obstacle that shifts its center angle by 15° per scan,
+cycling around the robot. The robot can't route around it because any planned
+path gets blocked. Hard to detect because the obstacle's position changes
+each scan — the LLM must recognise that a wall rotating around a stationary
+robot is physically impossible.
 """
+
 import copy
 import math
 import rclpy
@@ -12,45 +16,73 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from sensor_msgs.msg import LaserScan
 
-SENSOR_QOS = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT,
-                        durability=DurabilityPolicy.VOLATILE)
-PUB_QOS    = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE,
-                        durability=DurabilityPolicy.VOLATILE)
+SENSOR_QOS = QoSProfile(
+    depth=10,
+    reliability=ReliabilityPolicy.BEST_EFFORT,
+    durability=DurabilityPolicy.VOLATILE,
+)
+PUB_QOS = QoSProfile(
+    depth=10,
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.VOLATILE,
+)
 
-WALL_HALF_DEG = 50
-START_RANGE   = 2.0
-FINAL_RANGE   = 0.35
-STEP          = 0.15   # metres closer per scan
+WALL_HALF_DEG  = 30
+ROTATE_DEG     = 45    # jump size when rotating
+SCANS_PER_MOVE = 5     # hold position for ~1 second before jumping
+RANGE_MIN      = 0.25
+RANGE_MAX      = 0.55
 
 
 class Attacker4(Node):
     def __init__(self, **kwargs):
-        super().__init__('lidar_attacker4', **kwargs)
-        self._range = START_RANGE
-        self.sub = self.create_subscription(LaserScan, '/scan', self._cb, SENSOR_QOS)
-        self.pub = self.create_publisher(LaserScan, '/scan', PUB_QOS)
+        super().__init__("lidar_attacker4", **kwargs)
+        self._center_deg = 0.0
+        self._current_range = RANGE_MIN
+        self._scan_count = 0
+        self.sub = self.create_subscription(LaserScan, "/scan", self._cb, SENSOR_QOS)
+        self.pub = self.create_publisher(LaserScan, "/scan", PUB_QOS)
         self.get_logger().info(
-            f'Attacker 4: gradual approach {START_RANGE}m → {FINAL_RANGE}m, '
-            f'step={STEP}m/scan')
+            f"Attacker 4: rotating wall ±{WALL_HALF_DEG}°, "
+            f"jumps {ROTATE_DEG}° every {SCANS_PER_MOVE} scans, "
+            f"range varies {RANGE_MIN}–{RANGE_MAX} m"
+        )
 
     def _cb(self, msg: LaserScan):
-        n      = len(msg.ranges)
-        center = int(round(-msg.angle_min / msg.angle_increment)) % n
-        spread = int(round(math.radians(WALL_HALF_DEG) / msg.angle_increment))
-        fake   = copy.deepcopy(msg)
+        import random
+        n           = len(msg.ranges)
+        increment   = msg.angle_increment
+        forward_idx = int(round(-msg.angle_min / increment)) % n
+        center      = (forward_idx + int(round(
+                        math.radians(self._center_deg) / increment))) % n
+        spread      = int(round(math.radians(WALL_HALF_DEG) / increment))
+
+        fake = copy.deepcopy(msg)
         fake.header.stamp = self.get_clock().now().to_msg()
         for off in range(-spread, spread + 1):
-            fake.ranges[(center + off) % n] = self._range
+            fake.ranges[(center + off) % n] = self._current_range
+
         self.pub.publish(fake)
-        self.get_logger().info(f'  fake wall at {self._range:.2f} m')
-        if self._range > FINAL_RANGE:
-            self._range = max(FINAL_RANGE, self._range - STEP)
+
+        self._scan_count += 1
+        if self._scan_count >= SCANS_PER_MOVE:
+            self._scan_count = 0
+            self._center_deg = (self._center_deg + ROTATE_DEG) % 360
+            self._current_range = random.uniform(RANGE_MIN, RANGE_MAX)
+            self.get_logger().info(
+                f"  wall jumped to {self._center_deg:.0f}°, "
+                f"range={self._current_range:.2f} m"
+            )
 
 
 def main():
     rclpy.init()
-    node = Attacker4(parameter_overrides=[
-        rclpy.parameter.Parameter('use_sim_time', rclpy.parameter.Parameter.Type.BOOL, True)
-    ])
+    node = Attacker4(
+        parameter_overrides=[
+            rclpy.parameter.Parameter(
+                "use_sim_time", rclpy.parameter.Parameter.Type.BOOL, True
+            )
+        ]
+    )
     rclpy.spin(node)
     rclpy.shutdown()

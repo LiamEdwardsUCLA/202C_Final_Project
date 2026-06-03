@@ -17,8 +17,8 @@ The attacker publishes one fake scan per real sensor scan, matching the sensor r
 **Attack 3 — Frequency-matched noisy wall (~5 Hz):**
 Same as Attack 2, but adds per-ray Gaussian noise (σ=6 cm), random ray dropouts (12%), and arc-width jitter (±8°) to make the wall look like a real rough surface.
 
-**Attack 4 — Gradual approach (~5 Hz):**
-The fake obstacle starts at 2.0 m and "approaches" to 0.35 m at 0.15 m per scan, mimicking a real obstacle moving toward the robot. Physically implausible because the robot is not moving — requires the LLM to correlate scan changes with odometry to detect it.
+**Attack 4 — Rotating wall (~5 Hz):**
+A clean ±45° arc wall at 0.35 m that shifts its center angle by 15° per scan, cycling around the robot. The robot cannot route around it because any planned path gets blocked as the wall rotates to intercept it. Hardest to detect because the obstacle's position changes every scan — the LLM must recognise that a wall rotating around a stationary robot is physically impossible.
 
 ## Defense — LLM Monitor (Gemini)
 

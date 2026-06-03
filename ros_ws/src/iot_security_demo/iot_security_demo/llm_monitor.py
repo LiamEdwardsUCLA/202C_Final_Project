@@ -22,6 +22,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from nav2_msgs.srv import ClearEntireCostmap
 
 from google import genai
 from google.genai import types
@@ -41,7 +42,7 @@ POLL_INTERVAL = 10.0  # seconds between LLM queries
 BUFFER_SIZE = 15  # number of recent scans to summarise
 SECTOR_DEG = 60  # degrees per summary sector (6 sectors total)
 RAY_HISTORY = 20  # per-ray rolling history depth for median cleaning
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-3.1-flash-lite"
 
 
 def sector_mins(ranges, angle_min, angle_increment, sector_deg=60):
@@ -63,7 +64,7 @@ SECTOR_LABELS = ["front", "front-left", "left", "rear", "right", "front-right"]
 SYSTEM_PROMPT = """\
 You are a security monitor for a mobile robot's 360° LIDAR sensor.
 The sensor publishes scans at ~10 Hz. Each scan covers 360° with 1° resolution.
-A known attack injects fake obstacle readings in the forward direction at a short \
+A known attack injects fake obstacle readings at a short \
 range (typically 0.3–0.5 m), causing the robot to think there is a wall directly \
 ahead when there is none. The fake readings may include noise and dropouts to \
 appear more realistic.
@@ -72,10 +73,12 @@ You will receive scan summaries (minimum range per 60° sector) over a recent wi
 and the robot's displacement. Determine whether a spoofing attack is occurring.
 
 Signs of an attack:
-- Sudden appearance of a close obstacle (< 0.6 m) in forward sectors that persists \
-across many consecutive scans.
+- Sudden appearance of a close obstacle (< 0.6 m) that persists across many \
+consecutive scans.
 - The obstacle range stays roughly constant despite robot movement (a real obstacle \
 would gradually change as the robot approaches or turns).
+- An obstacle that shifts between sectors across scans while the robot is stationary \
+(a real obstacle cannot move around a stationary robot).
 - Other sectors show normal, varying ranges inconsistent with the robot being boxed in.
 
 If an attack is detected, also estimate the approximate range threshold: readings \
@@ -113,7 +116,15 @@ class LLMMonitor(Node):
         self._odom_latest = None
         self._latest_scan = None
         self._attack_active = False
-        self._suspect_range_max = 0.6  # updated by Gemini response
+        self._attack_just_detected = False  # triggers one-shot costmap clear
+        self._suspect_range_max = 0.6
+
+        self._local_clear = self.create_client(
+            ClearEntireCostmap, "/local_costmap/clear_entirely_local_costmap"
+        )
+        self._global_clear = self.create_client(
+            ClearEntireCostmap, "/global_costmap/clear_entirely_global_costmap"
+        )
 
         self.scan_sub = self.create_subscription(
             LaserScan, "/scan", self._scan_cb, SENSOR_QOS
@@ -176,48 +187,66 @@ class LLMMonitor(Node):
         with self._lock:
             msg = self._latest_scan
             attack = self._attack_active
+            just_detected = self._attack_just_detected
             suspect_max = self._suspect_range_max
             ray_history = {k: list(v) for k, v in self._ray_history.items()}
+            if just_detected:
+                self._attack_just_detected = False
         if msg is None:
             return
+
+        # One-shot costmap clear on first detection
+        if just_detected:
+            threading.Thread(target=self._clear_costmaps, daemon=True).start()
+
         if not attack:
             self.pub.publish(msg)
             return
 
-        # Surgical cleaning: only replace rays that look fake.
-        # A ray is fake if its current value is below suspect_max AND its
-        # historical median was well above suspect_max (i.e. it appeared suddenly).
-        # Rays that were already close historically (real wall) are preserved.
+        # Surgical cleaning: for each suspicious ray, use the max of its history
+        # (which captures pre-attack real readings even if history is partly
+        # corrupted). Fall back to inf if the entire history is fake.
+        # Use 1.3× suspect_max as the cleaning threshold to catch noisy fake
+        # readings that land slightly above Gemini's estimate.
         cleaned = copy.deepcopy(msg)
         n = len(cleaned.ranges)
         center = int(round(-msg.angle_min / msg.angle_increment)) % n
-        spread = int(round(math.radians(SECTOR_DEG) / msg.angle_increment))
+        # Clean ±75° to also catch arc-jitter that spills outside the ±60° sector
+        spread = int(round(math.radians(75) / msg.angle_increment))
+        clean_threshold = suspect_max * 2.0
         replaced = 0
 
         for offset in range(-spread, spread + 1):
             idx = (center + offset) % n
             current = cleaned.ranges[idx]
-            if not math.isfinite(current) or current >= suspect_max:
-                continue  # not suspicious
+            if not math.isfinite(current) or current >= clean_threshold:
+                continue
 
             hist = ray_history.get(idx, [])
-            if len(hist) < 3:
-                continue  # not enough history to judge
-
-            hist_sorted = sorted(hist)
-            median = hist_sorted[len(hist_sorted) // 2]
-
-            if median > suspect_max * 1.5:
-                # Historical median was much further — this reading is a sudden
-                # jump, likely injected. Restore to historical median.
-                cleaned.ranges[idx] = median
-                replaced += 1
-            # else: historically close too → real obstacle, leave it alone
+            best = max((v for v in hist if v > clean_threshold), default=None)
+            if best is not None:
+                cleaned.ranges[idx] = best  # restore to furthest real reading
+            else:
+                cleaned.ranges[idx] = float("inf")  # no real history — force clear
+            replaced += 1
 
         if replaced > 0:
             self.get_logger().info(
-                f'Cleaned {replaced} suspicious rays (suspect_max={suspect_max:.2f} m)')
+                f"Cleaned {replaced} rays (suspect_max={suspect_max:.2f} m)"
+            )
         self.pub.publish(cleaned)
+
+    def _clear_costmaps(self):
+        req = ClearEntireCostmap.Request()
+        for client, name in [
+            (self._local_clear, "local"),
+            (self._global_clear, "global"),
+        ]:
+            if client.wait_for_service(timeout_sec=2.0):
+                client.call(req)
+                self.get_logger().info(f"Cleared {name} costmap")
+            else:
+                self.get_logger().warn(f"{name} costmap clear service not available")
 
     # ------------------------------------------------------------------ #
 
@@ -293,6 +322,8 @@ class LLMMonitor(Node):
                 f"  Reasoning: {reasoning}"
             )
             with self._lock:
+                if not self._attack_active:
+                    self._attack_just_detected = True  # first detection → clear costmap
                 self._attack_active = True
                 self._suspect_range_max = float(suspect_max)
         else:

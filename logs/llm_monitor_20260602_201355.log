@@ -1,0 +1,12 @@
+LLM Monitor log — started 20260602_201355
+Model: gemini-2.0-flash  Poll interval: 10.0s
+======================================================================
+
+[20:14:01] ERROR: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.0-flash is no longer available. Please update your code to use a newer model for the latest features and improvements.', 'status': 'NOT_FOUND'}}
+
+[20:14:11] ERROR: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.0-flash is no longer available. Please update your code to use a newer model for the latest features and improvements.', 'status': 'NOT_FOUND'}}
+
+[20:14:21] ERROR: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.0-flash is no longer available. Please update your code to use a newer model for the latest features and improvements.', 'status': 'NOT_FOUND'}}
+
+[20:14:31] ERROR: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.0-flash is no longer available. Please update your code to use a newer model for the latest features and improvements.', 'status': 'NOT_FOUND'}}
+
